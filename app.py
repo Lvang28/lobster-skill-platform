@@ -5,8 +5,6 @@ import os
 import json
 import random
 from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file, session
-from models import init_db, User
-from sqlalchemy.orm import scoped_session
 
 # 自动检测环境并导入配置
 try:
@@ -18,19 +16,22 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
-# 初始化数据库
-db_session = init_db(DATABASE_URL)
+# 延迟导入和初始化（避免 gunicorn 启动时的问题）
+def get_db_session():
+    """获取数据库会话"""
+    from models import init_db
+    return init_db(DATABASE_URL)
 
-# 初始化服务
-from services import UserService, SkillService, RecommendationService
-user_service = UserService(db_session)
-skill_service = SkillService(db_session)
-recommendation_service = RecommendationService(db_session)
+def get_services():
+    """获取服务实例"""
+    from services import UserService, SkillService, RecommendationService
+    db = get_db_session()
+    return UserService(db), SkillService(db), RecommendationService(db)
 
 # 默认用户名和头像列表
 DEFAULT_USERNAMES = ['小龙虾', '技能达人', '探索者', '创新者', '学习家', '分享者', '实践者', '收藏家']
 DEFAULT_AVATARS = [
-    '🦞', '🚀', '⭐', '🎯', '💡', '🔥', '✨', '🌟', '🎨', '🏆'
+    '🦞', '🚀', '⭐', '🎯', '💡', '🔥', '✨', '🌟', '🎨', ''
 ]
 
 def get_or_create_auto_user():
@@ -41,15 +42,17 @@ def get_or_create_auto_user():
         avatar = random.choice(DEFAULT_AVATARS)
         
         # 创建用户
+        user_service, _, _ = get_services()
         user = user_service.get_or_create_user(username, email=None)
         user.avatar = avatar
-        db_session.commit()
+        user_service.session.commit()
         
         # 存入 session
         session['user_id'] = user.id
         session['username'] = user.username
         session['avatar'] = avatar
     
+    user_service, _, _ = get_services()
     return user_service.session.query(User).get(session.get('user_id'))
 
 
@@ -58,8 +61,9 @@ def index():
     """首页"""
     # 自动登录
     user = get_or_create_auto_user()
-    recommendations = []
+    user_service, skill_service, recommendation_service = get_services()
     
+    recommendations = []
     if user:
         # 获取今日推荐
         recommendations = recommendation_service.generate_daily_recommendations(user.id)
@@ -93,6 +97,7 @@ def skills():
     
     # 自动登录
     user = get_or_create_auto_user()
+    _, skill_service, _ = get_services()
     
     skills = skill_service.search_skills(
         query=query,
@@ -116,12 +121,14 @@ def skill_detail(skill_id):
     """技能详情页"""
     # 自动登录
     user = get_or_create_auto_user()
+    _, skill_service, _ = get_services()
     
     skill = skill_service.get_skill(skill_id)
     if not skill:
         return "Skill not found", 404
     
-    uploader = user_service.session.query(User).get(skill.uploader_id)
+    from models import User
+    uploader = get_db_session().query(User).get(skill.uploader_id)
     
     return render_template('skill_detail.html',
                          skill=skill,
@@ -134,6 +141,7 @@ def download_skill(skill_id):
     """下载技能"""
     # 自动登录
     user = get_or_create_auto_user()
+    _, skill_service, _ = get_services()
     
     file_path = skill_service.download_skill(skill_id, user.id)
     if not file_path:
@@ -147,6 +155,7 @@ def use_skill(skill_id):
     """记录技能使用"""
     # 自动登录
     user = get_or_create_auto_user()
+    _, skill_service, _ = get_services()
     
     data = request.get_json()
     duration = data.get('duration', 0)
@@ -181,6 +190,7 @@ def upload_skill():
         file.save(temp_path)
         
         # 上传技能
+        _, skill_service, _ = get_services()
         skill = skill_service.upload_skill(
             name=name,
             description=description,
@@ -204,6 +214,7 @@ def profile():
     
     # 自动登录
     user = get_or_create_auto_user()
+    user_service, _, _ = get_services()
     
     stats = user_service.get_user_stats(user.id)
     
@@ -228,6 +239,7 @@ def community():
     
     # 自动登录
     user = get_or_create_auto_user()
+    user_service, _, _ = get_services()
     
     # 获取分类参数
     category = request.args.get('category', 'all')
@@ -272,6 +284,7 @@ def view_post(post_id):
     
     # 自动登录
     user = get_or_create_auto_user()
+    user_service, _, _ = get_services()
     
     post = user_service.session.query(CommunityPost).get(post_id)
     if not post:
@@ -309,6 +322,7 @@ def create_post():
     
     # 自动登录
     user = get_or_create_auto_user()
+    user_service, _, _ = get_services()
     
     if request.method == 'POST':
         title = request.form.get('title')
@@ -343,6 +357,7 @@ def like_post(post_id):
     
     # 自动登录
     user = get_or_create_auto_user()
+    user_service, _, _ = get_services()
     
     # 检查是否已点赞
     existing_like = user_service.session.query(CommunityLike).filter_by(
@@ -380,6 +395,7 @@ def add_comment():
     
     # 自动登录
     user = get_or_create_auto_user()
+    user_service, _, _ = get_services()
     
     data = request.get_json()
     post_id = data.get('post_id')
@@ -423,6 +439,7 @@ def accept_recommendation():
     """接受推荐"""
     # 自动登录
     user = get_or_create_auto_user()
+    _, _, recommendation_service = get_services()
     
     data = request.get_json()
     skill_id = data.get('skill_id')
@@ -437,9 +454,10 @@ def get_stats():
     from sqlalchemy import func
     from models import User, Skill, DownloadHistory
     
-    total_skills = db_session.query(func.count(Skill.id)).scalar()
-    total_users = db_session.query(func.count(User.id)).scalar()
-    total_downloads = db_session.query(func.count(DownloadHistory.id)).scalar()
+    db = get_db_session()
+    total_skills = db.query(func.count(Skill.id)).scalar()
+    total_users = db.query(func.count(User.id)).scalar()
+    total_downloads = db.query(func.count(DownloadHistory.id)).scalar()
     
     return jsonify({
         'total_skills': total_skills,
