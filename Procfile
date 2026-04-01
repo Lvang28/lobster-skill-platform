@@ -1,1 +1,1 @@
-web: python start_render.py
+web: python test_minimal.py
