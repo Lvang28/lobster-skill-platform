@@ -44,3 +44,9 @@ data/
 # Environment
 .env
 .env.local
+
+# Credentials
+.git-credentials
+.github_token
+*.pem
+*.key
