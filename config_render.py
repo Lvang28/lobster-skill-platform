@@ -64,8 +64,13 @@ CLOUD_STORAGE_CONFIG = {
 }
 
 # 确保目录存在
+import os
 for dir_path in [DATA_DIR, SKILLS_DIR, USER_DIR, BACKUP_DIR]:
-    os.makedirs(dir_path, exist_ok=True)
+    try:
+        os.makedirs(dir_path, exist_ok=True)
+        print(f"✓ Created directory: {dir_path}")
+    except Exception as e:
+        print(f"⚠️  Warning creating {dir_path}: {e}")
 
 print(f"✓ 数据目录已初始化：{DATA_DIR}")
 print(f"🌐 运行环境：{'Render Cloud' if IS_RENDER else 'Local'}")
