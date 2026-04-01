@@ -7,16 +7,22 @@ import random
 from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file, session
 from models import init_db, User
 from sqlalchemy.orm import scoped_session
-from config import DATABASE_URL, DEBUG, HOST, PORT
-from services import UserService, SkillService, RecommendationService
+
+# 自动检测环境并导入配置
+try:
+    from config_render import DATABASE_URL, DEBUG, HOST, PORT, SECRET_KEY
+except ImportError:
+    from config import DATABASE_URL, DEBUG, HOST, PORT
+    SECRET_KEY = 'lobster_skill_platform_secret_key_2024'
 
 app = Flask(__name__)
-app.secret_key = 'lobster_skill_platform_secret_key_2024'
+app.secret_key = SECRET_KEY
 
 # 初始化数据库
 db_session = init_db(DATABASE_URL)
 
 # 初始化服务
+from services import UserService, SkillService, RecommendationService
 user_service = UserService(db_session)
 skill_service = SkillService(db_session)
 recommendation_service = RecommendationService(db_session)
@@ -445,4 +451,5 @@ def get_stats():
 if __name__ == '__main__':
     print(f"🦞 龙虾 Skill 合集平台启动中...")
     print(f"访问地址：http://{HOST}:{PORT}")
+    # Render 使用 gunicorn，本地开发使用 Flask 内置服务器
     app.run(host=HOST, port=PORT, debug=DEBUG)
