@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}龙虾 Skill 合集平台{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">🦞 龙虾 Skill 平台</a>
+            <div class="nav-links">
+                <a href="/">首页</a>
+                <a href="/skills">技能库</a>
+                <a href="/community" class="nav-community">💬 社区</a>
+                {% if user %}
+                    <a href="/upload">上传</a>
+                    <a href="/profile" class="profile-link">
+                        <span class="avatar">{{ user.avatar or '👤' }}</span>
+                        <span class="username">{{ user.username }}</span>
+                        <span class="points">({{ user.total_points }}分)</span>
+                    </a>
+                    <a href="/logout" class="btn-logout">退出</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>🦞 龙虾 Skill 合集平台 - 让技能分享更有价值</p>
+            <div class="stats" id="platformStats">
+                <span>加载中...</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

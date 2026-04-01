@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- 今日推荐 -->
+    {% if recommendations and recommendations|length > 0 %}
+    <section class="section">
+        <h2 class="section-title">🎯 今日推荐</h2>
+        <div class="cards-grid">
+            {% for skill in recommendations %}
+            <div class="card skill-card" data-skill-id="{{ skill.id }}">
+                <h3>{{ skill.name }}</h3>
+                <p class="skill-desc">{{ skill.description[:100] }}{% if skill.description|length > 100 %}...{% endif %}</p>
+                <div class="skill-meta">
+                    <span class="tag">{{ skill.category or '未分类' }}</span>
+                    <span class="stat">⬇️ {{ skill.download_count }}</span>
+                    <span class="stat">⭐ {{ skill.rating }}</span>
+                </div>
+                <div class="card-actions">
+                    <a href="/skill/{{ skill.id }}" class="btn btn-secondary">详情</a>
+                    <a href="/skill/{{ skill.id }}/download" class="btn btn-primary">下载</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- 热门技能 -->
+    <section class="section">
+        <h2 class="section-title">🔥 热门技能</h2>
+        <div class="cards-grid">
+            {% for skill in popular_skills %}
+            <div class="card skill-card">
+                <h3>{{ skill.name }}</h3>
+                <p class="skill-desc">{{ skill.description[:100] if skill.description else '暂无描述' }}</p>
+                <div class="skill-meta">
+                    <span class="tag">{{ skill.category or '未分类' }}</span>
+                    <span class="stat">⬇️ {{ skill.download_count }}</span>
+                    <span class="stat">👁️ {{ skill.use_count }}</span>
+                </div>
+                <div class="card-actions">
+                    <a href="/skill/{{ skill.id }}" class="btn btn-secondary">详情</a>
+                    <a href="/skill/{{ skill.id }}/download" class="btn btn-primary">下载</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="section-footer">
+            <a href="/skills?sort=download_count" class="btn btn-outline">查看全部 →</a>
+        </div>
+    </section>
+
+    <!-- 最新技能 -->
+    <section class="section">
+        <h2 class="section-title">✨ 最新技能</h2>
+        <div class="cards-grid">
+            {% for skill in new_skills %}
+            <div class="card skill-card">
+                <h3>{{ skill.name }}</h3>
+                <p class="skill-desc">{{ skill.description[:100] if skill.description else '暂无描述' }}</p>
+                <div class="skill-meta">
+                    <span class="tag">{{ skill.category or '未分类' }}</span>
+                    <span class="stat">⬇️ {{ skill.download_count }}</span>
+                    <span class="stat">📅 {{ skill.created_at.strftime('%m-%d') }}</span>
+                </div>
+                <div class="card-actions">
+                    <a href="/skill/{{ skill.id }}" class="btn btn-secondary">详情</a>
+                    <a href="/skill/{{ skill.id }}/download" class="btn btn-primary">下载</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="section-footer">
+            <a href="/skills" class="btn btn-outline">查看全部 →</a>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function acceptRecommendation(skillId) {
+    fetch('/api/recommendations/accept', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({skill_id: skillId})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ 感谢反馈！推荐已记录');
+        }
+    });
+}
+</script>
+{% endblock %}

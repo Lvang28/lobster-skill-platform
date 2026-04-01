@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">上传技能</h1>
+    
+    <div class="upload-form-box">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>技能名称 *</label>
+                <input type="text" name="name" required placeholder="例如：数据分析助手">
+            </div>
+
+            <div class="form-group">
+                <label>作者名</label>
+                <input type="text" name="author" placeholder="你的昵称或用户名">
+            </div>
+
+            <div class="form-group">
+                <label>分类</label>
+                <select name="category">
+                    <option value="">选择分类</option>
+                    <option value="数据处理">数据处理</option>
+                    <option value="自动化">自动化</option>
+                    <option value="AI 工具">AI 工具</option>
+                    <option value="开发工具">开发工具</option>
+                    <option value="办公效率">办公效率</option>
+                    <option value="设计工具">设计工具</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>标签（用逗号分隔）</label>
+                <input type="text" name="tags" placeholder="例如：python, 数据分析，可视化">
+            </div>
+
+            <div class="form-group">
+                <label>描述 *</label>
+                <textarea name="description" rows="5" required placeholder="请详细描述这个技能的功能、使用方法和适用场景..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>技能文件 *</label>
+                <input type="file" name="file" required accept=".py,.zip,.js,.json,.md">
+                <small>支持的文件格式：.py, .zip, .js, .json, .md</small>
+            </div>
+
+            <div class="upload-info">
+                <h4>📊 积分规则</h4>
+                <ul>
+                    <li>✓ 上传技能获得 <strong>+10 积分</strong></li>
+                    <li>✓ 技能被下载获得 <strong>+5 积分/次</strong></li>
+                    <li>✓ 技能被使用获得 <strong>+3 积分/次</strong></li>
+                    <li>✓ 推荐被采纳获得 <strong>+1 积分</strong></li>
+                </ul>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-large">🚀 上传技能</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

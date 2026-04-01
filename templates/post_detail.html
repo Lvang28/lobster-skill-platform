@@ -1,0 +1,514 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - 龙虾 Skill 平台{% endblock %}
+
+{% block content %}
+<div class="post-detail-container">
+    <!-- 返回按钮 -->
+    <a href="{{ url_for('community') }}" class="back-btn">← 返回社区</a>
+    
+    <!-- 帖子内容 -->
+    <article class="post-article {% if post.is_pinned %}pinned{% endif %}">
+        <div class="post-header">
+            <h1 class="post-main-title">{{ post.title }}</h1>
+            
+            <div class="post-meta">
+                <span class="post-author">
+                    {{ post.author.avatar if post.author else '🌟' }} 
+                    {{ post.author.username if post.author else '未知用户' }}
+                </span>
+                <span class="post-time">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                {% if post.is_pinned %}
+                <span class="badge badge-pinned">📌 置顶</span>
+                {% endif %}
+                {% if post.is_locked %}
+                <span class="badge badge-locked">🔒 已锁定</span>
+                {% endif %}
+            </div>
+            
+            <div class="post-category-badge-large category-{{ post.category }}">
+                {% if post.category == 'general' %}💬 综合讨论
+                {% elif post.category == 'share' %}🎉 经验分享
+                {% elif post.category == 'question' %}❓ 求助提问
+                {% elif post.category == 'discussion' %}🔥 技术交流
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="post-content">
+            {{ post.content | replace('\n', '<br>') | safe }}
+        </div>
+        
+        {% if post.tags %}
+        <div class="post-tags">
+            {% for tag in post.tags %}
+            <span class="tag">#{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="post-actions">
+            <button class="action-btn like-btn {% if has_liked %}liked{% endif %}" 
+                    data-post-id="{{ post.id }}">
+                ❤️ <span class="like-count">{{ post.like_count }}</span>
+                {% if has_liked %}已点赞{% else %}点赞{% endif %}
+            </button>
+            <span class="action-stat">👁️ {{ post.view_count }} 阅读</span>
+            <span class="action-stat">💬 {{ post.comment_count }} 评论</span>
+        </div>
+    </article>
+    
+    <!-- 评论区 -->
+    <section class="comments-section">
+        <h2 class="comments-title">💬 评论 ({{ post.comment_count }})</h2>
+        
+        <!-- 发表评论 -->
+        {% if not post.is_locked %}
+        <div class="comment-form-container">
+            <textarea id="comment-content" rows="4" 
+                      placeholder="写下你的评论..." class="comment-input"></textarea>
+            <button onclick="submitComment()" class="btn btn-primary">发表评论</button>
+        </div>
+        {% else %}
+        <div class="locked-notice">
+            🔒 该帖子已锁定，无法评论
+        </div>
+        {% endif %}
+        
+        <!-- 评论列表 -->
+        <div class="comments-list">
+            {% if comments %}
+                {% for comment in comments %}
+                <div class="comment-card" id="comment-{{ comment.id }}">
+                    <div class="comment-header">
+                        <span class="comment-author">
+                            {{ comment.author.avatar if comment.author else '🌟' }} 
+                            {{ comment.author.username if comment.author else '未知用户' }}
+                        </span>
+                        <span class="comment-time">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                    <div class="comment-content">
+                        {{ comment.content | replace('\n', '<br>') | safe }}
+                    </div>
+                    <div class="comment-footer">
+                        <span class="comment-likes">❤️ {{ comment.like_count }}</span>
+                        <button class="reply-btn" onclick="showReplyForm({{ comment.id }})">回复</button>
+                    </div>
+                    
+                    <!-- 回复表单（默认隐藏）-->
+                    <div id="reply-form-{{ comment.id }}" class="reply-form" style="display: none;">
+                        <textarea id="reply-content-{{ comment.id }}" rows="3" 
+                                  placeholder="写下你的回复..." class="reply-input"></textarea>
+                        <button onclick="submitReply({{ comment.id }})" class="btn btn-sm btn-primary">回复</button>
+                    </div>
+                    
+                    <!-- 回复列表 -->
+                    {% if comment.replies %}
+                    <div class="replies-list">
+                        {% for reply in comment.replies %}
+                        <div class="reply-card">
+                            <div class="reply-header">
+                                <span class="reply-author">
+                                    {{ reply.author.avatar if reply.author else '🌟' }} 
+                                    {{ reply.author.username if reply.author else '未知用户' }}
+                                </span>
+                                <span class="reply-time">{{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                            <div class="reply-content">
+                                {{ reply.content | replace('\n', '<br>') | safe }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-comments">
+                    <div class="empty-icon">💭</div>
+                    <p>暂无评论，快来抢沙发吧！</p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+<script>
+// 点赞功能
+document.querySelector('.like-btn')?.addEventListener('click', async function() {
+    const postId = this.dataset.postId;
+    
+    try {
+        const response = await fetch(`/api/community/post/${postId}/like`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            this.classList.toggle('liked');
+            this.querySelector('.like-count').textContent = data.like_count;
+            this.innerHTML = `❤️ <span class="like-count">${data.like_count}</span> ${data.liked ? '已点赞' : '点赞'}`;
+        }
+    } catch (error) {
+        console.error('点赞失败:', error);
+        alert('点赞失败，请重试');
+    }
+});
+
+// 发表评论
+async function submitComment() {
+    const content = document.getElementById('comment-content').value.trim();
+    
+    if (!content) {
+        alert('请输入评论内容');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/community/comment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                post_id: {{ post.id }},
+                content: content
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || '评论失败');
+        }
+    } catch (error) {
+        console.error('评论失败:', error);
+        alert('评论失败，请重试');
+    }
+}
+
+// 发表回复
+async function submitReply(parentId) {
+    const content = document.getElementById(`reply-content-${parentId}`).value.trim();
+    
+    if (!content) {
+        alert('请输入回复内容');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/community/comment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                post_id: {{ post.id }},
+                content: content,
+                parent_id: parentId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || '回复失败');
+        }
+    } catch (error) {
+        console.error('回复失败:', error);
+        alert('回复失败，请重试');
+    }
+}
+
+// 显示回复表单
+function showReplyForm(commentId) {
+    const form = document.getElementById(`reply-form-${commentId}`);
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+
+<style>
+.post-detail-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.back-btn {
+    display: inline-block;
+    color: #64748b;
+    text-decoration: none;
+    margin-bottom: 20px;
+    transition: color 0.3s;
+}
+
+.back-btn:hover {
+    color: #2563eb;
+}
+
+.post-article {
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    margin-bottom: 30px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.post-article.pinned {
+    border: 2px solid #f59e0b;
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+}
+
+.post-main-title {
+    font-size: 2rem;
+    color: #1e293b;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+.post-meta {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 20px;
+    color: #64748b;
+    flex-wrap: wrap;
+}
+
+.post-author {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-pinned {
+    background: #f59e0b;
+    color: white;
+}
+
+.badge-locked {
+    background: #64748b;
+    color: white;
+}
+
+.post-category-badge-large {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-bottom: 25px;
+}
+
+.post-content {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: #334155;
+    margin-bottom: 30px;
+}
+
+.post-tags {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+}
+
+.tag {
+    padding: 6px 14px;
+    background: #f1f5f9;
+    border-radius: 16px;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+.post-actions {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    padding-top: 25px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.95rem;
+}
+
+.action-btn:hover {
+    background: #e2e8f0;
+}
+
+.action-btn.liked {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.action-stat {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.comments-section {
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.comments-title {
+    font-size: 1.5rem;
+    color: #1e293b;
+    margin-bottom: 25px;
+}
+
+.comment-form-container {
+    margin-bottom: 30px;
+}
+
+.comment-input,
+.reply-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    resize: vertical;
+    font-family: inherit;
+    margin-bottom: 12px;
+}
+
+.comment-input:focus,
+.reply-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.locked-notice {
+    padding: 20px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    text-align: center;
+    color: #64748b;
+    margin-bottom: 30px;
+}
+
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.comment-card,
+.reply-card {
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.comment-header,
+.reply-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+}
+
+.comment-author,
+.reply-author {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.comment-time,
+.reply-time {
+    color: #94a3b8;
+}
+
+.comment-content,
+.reply-content {
+    line-height: 1.7;
+    color: #334155;
+    margin-bottom: 12px;
+}
+
+.comment-footer {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.comment-likes,
+.reply-btn {
+    color: #64748b;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.reply-btn:hover {
+    color: #2563eb;
+}
+
+.replies-list {
+    margin-top: 15px;
+    padding-left: 20px;
+    border-left: 2px solid #e2e8f0;
+}
+
+.empty-comments {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .post-article {
+        padding: 25px;
+    }
+    
+    .post-main-title {
+        font-size: 1.5rem;
+    }
+    
+    .comments-section {
+        padding: 25px;
+    }
+    
+    .post-actions {
+        flex-wrap: wrap;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">技能库</h1>
+    
+    <!-- 搜索和筛选 -->
+    <div class="filter-bar">
+        <form class="search-form" method="GET">
+            <input type="text" name="q" value="{{ query }}" placeholder="搜索技能..." class="search-input">
+            <select name="category" class="filter-select">
+                <option value="">所有分类</option>
+                {% for cat in categories %}
+                <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+            <select name="sort" class="filter-select">
+                <option value="created_at" {% if current_sort == 'created_at' %}selected{% endif %}>最新</option>
+                <option value="download_count" {% if current_sort == 'download_count' %}selected{% endif %}>最热</option>
+                <option value="use_count" {% if current_sort == 'use_count' %}selected{% endif %}>最多使用</option>
+                <option value="rating" {% if current_sort == 'rating' %}selected{% endif %}>最高评分</option>
+            </select>
+            <button type="submit" class="btn btn-primary">搜索</button>
+        </form>
+    </div>
+
+    <!-- 技能列表 -->
+    <div class="skills-list">
+        {% if skills %}
+            {% for skill in skills %}
+            <div class="skill-item">
+                <div class="skill-info">
+                    <h3><a href="/skill/{{ skill.id }}">{{ skill.name }}</a></h3>
+                    <p class="skill-desc">{{ skill.description[:150] if skill.description else '暂无描述' }}</p>
+                    <div class="skill-meta">
+                        <span class="tag">{{ skill.category or '未分类' }}</span>
+                        {% for tag in (skill.tags or [])[:3] %}
+                        <span class="tag tag-outline">{{ tag }}</span>
+                        {% endfor %}
+                        <span class="stat">⬇️ {{ skill.download_count }}</span>
+                        <span class="stat">👁️ {{ skill.use_count }}</span>
+                        <span class="stat">⭐ {{ skill.rating }}</span>
+                        <span class="author">by {{ skill.author or '匿名' }}</span>
+                    </div>
+                </div>
+                <div class="skill-actions">
+                    <a href="/skill/{{ skill.id }}" class="btn btn-secondary">详情</a>
+                    <a href="/skill/{{ skill.id }}/download" class="btn btn-primary">下载</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <p>😕 没有找到相关技能</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="skill-detail">
+        <!-- 基本信息 -->
+        <div class="detail-header">
+            <h1>{{ skill.name }}</h1>
+            <div class="meta-row">
+                <span class="tag">{{ skill.category or '未分类' }}</span>
+                <span class="version">v{{ skill.version }}</span>
+            </div>
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="stats-box">
+            <div class="stat-item">
+                <span class="stat-value">{{ skill.download_count }}</span>
+                <span class="stat-label">下载次数</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ skill.use_count }}</span>
+                <span class="stat-label">使用次数</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ skill.rating }}</span>
+                <span class="stat-label">评分</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ skill.file_size // 1024 if skill.file_size else 0 }} KB</span>
+                <span class="stat-label">文件大小</span>
+            </div>
+        </div>
+
+        <!-- 作者信息 -->
+        <div class="author-box">
+            <strong>作者：</strong>
+            {% if uploader %}
+                <span>{{ uploader.username }}</span>
+                <span class="points-badge">{{ uploader.total_points }} 积分</span>
+            {% else %}
+                <span>匿名</span>
+            {% endif %}
+        </div>
+
+        <!-- 标签 -->
+        {% if skill.tags %}
+        <div class="tags-box">
+            {% for tag in skill.tags %}
+            <span class="tag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- 描述 -->
+        <div class="description-box">
+            <h3>技能描述</h3>
+            <p>{{ skill.description or '暂无描述' }}</p>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="action-buttons">
+            <a href="/skill/{{ skill.id }}/download" class="btn btn-primary btn-large">⬇️ 下载此技能</a>
+            {% if user and user.id != skill.uploader_id %}
+            <button class="btn btn-secondary btn-large" onclick="recordUsage()">👍 使用过</button>
+            {% endif %}
+        </div>
+
+        <!-- 返回链接 -->
+        <div class="back-link">
+            <a href="/skills">← 返回技能库</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function recordUsage() {
+    fetch('/skill/{{ skill.id }}/use', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({duration: 0, success: true})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ 已记录使用，感谢反馈！');
+        }
+    });
+}
+</script>
+{% endblock %}

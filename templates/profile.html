@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">个人主页</h1>
+
+    <div class="profile-grid">
+        <!-- 用户信息卡片 -->
+        <div class="card profile-card">
+            <h2>{{ user.username }}</h2>
+            {% if user.email %}
+            <p class="email">{{ user.email }}</p>
+            {% endif %}
+            <div class="points-display">
+                <span class="points-value">{{ user.total_points }}</span>
+                <span class="points-label">总积分</span>
+            </div>
+            <div class="join-date">
+                加入时间：{{ user.created_at.strftime('%Y-%m-%d') }}
+            </div>
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="card stats-card">
+            <h3>📊 我的统计</h3>
+            <div class="stats-grid">
+                <div class="mini-stat">
+                    <span class="value">{{ stats.uploaded_count }}</span>
+                    <span class="label">上传技能</span>
+                </div>
+                <div class="mini-stat">
+                    <span class="value">{{ stats.downloaded_count }}</span>
+                    <span class="label">下载技能</span>
+                </div>
+                <div class="mini-stat">
+                    <span class="value">{{ stats.used_count }}</span>
+                    <span class="label">使用技能</span>
+                </div>
+            </div>
+            
+            {% if stats.calculated_points and not stats.points_match %}
+            <div style="margin-top: 15px; padding: 10px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+                <strong>⚠️ 数据校验提示：</strong><br>
+                理论积分：{{ stats.calculated_points }} | 实际积分：{{ stats.actual_points }}<br>
+                <small>系统会自动校准积分数据</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 我上传的技能 -->
+    <section class="section">
+        <h2 class="section-title">📦 我上传的技能 ({{ stats.uploaded_count }})</h2>
+        {% if stats.uploaded_skills and stats.uploaded_skills|length > 0 %}
+        <div class="skills-list">
+            {% for skill in stats.uploaded_skills %}
+            <div class="skill-item">
+                <div class="skill-info">
+                    <h3><a href="/skill/{{ skill.id }}">{{ skill.name }}</a></h3>
+                    <div class="skill-meta">
+                        <span class="tag">{{ skill.category or '未分类' }}</span>
+                        <span class="stat">⬇️ {{ skill.download_count }} 次下载</span>
+                        <span class="stat">👁️ {{ skill.use_count }} 次使用</span>
+                        <span class="stat">💰 已获得 {{ skill.earnings }} 积分</span>
+                        <span class="stat" style="color: var(--gray-500); font-size: 0.75rem;">
+                            📅 {{ skill.created_at[:10] if skill.created_at else '-' }}
+                        </span>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.85rem; color: var(--gray-600);">
+                        <strong>收益明细：</strong>
+                        下载收益：{{ skill.download_count }} × 5 = <strong>{{ skill.download_count * 5 }}</strong> 分 | 
+                        使用收益：{{ skill.use_count }} × 3 = <strong>{{ skill.use_count * 3 }}</strong> 分 | 
+                        总计：<strong style="color: var(--primary-color);">{{ skill.earnings }}</strong> 分
+                    </div>
+                </div>
+                <a href="/skill/{{ skill.id }}" class="btn btn-secondary">查看</a>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- 上传技能总收益 -->
+        <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #dbeafe, #bfdbfe); border-radius: 8px; text-align: center;">
+            <strong style="color: var(--primary-color); font-size: 1.1rem;">📊 上传技能总收益</strong>
+            <div style="font-size: 2rem; font-weight: 700; color: var(--primary-color); margin-top: 5px;">
+                {{ stats.uploaded_skills|sum(attribute='earnings') }} 积分
+            </div>
+            <small style="color: var(--gray-600);">
+                (上传奖励：{{ stats.uploaded_count * 10 }}分 + 持续收益：{{ stats.uploaded_skills|sum(attribute='earnings') - stats.uploaded_count * 10 }}分)
+            </small>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>还没有上传任何技能</p>
+            <a href="/upload" class="btn btn-primary">去上传第一个技能</a>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- 我下载的技能 -->
+    <section class="section">
+        <h2 class="section-title">⬇️ 我下载的技能 ({{ stats.downloaded_count }})</h2>
+        {% if stats.downloaded_skills and stats.downloaded_skills|length > 0 %}
+        <div class="skills-list">
+            {% for skill in stats.downloaded_skills %}
+            <div class="skill-item">
+                <div class="skill-info">
+                    <h3><a href="/skill/{{ skill.id }}">{{ skill.name }}</a></h3>
+                    <div class="skill-meta">
+                        <span class="stat">📥 {{ skill.downloaded_at[:16].replace('T', ' ') }}</span>
+                        <span class="stat">💰 获得 2 积分</span>
+                    </div>
+                </div>
+                <a href="/skill/{{ skill.id }}" class="btn btn-secondary">查看</a>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div style="margin-top: 20px; padding: 10px; background: var(--gray-50); border-radius: 8px; text-align: center;">
+            <small style="color: var(--gray-600);">
+                下载技能累计获得：<strong style="color: var(--primary-color);">{{ stats.downloaded_count * 2 }}</strong> 积分
+            </small>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>还没有下载任何技能</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- 积分历史 -->
+    <section class="section">
+        <h2 class="section-title">💰 积分历史明细</h2>
+        {% if points_history and points_history|length > 0 %}
+        <table class="points-table">
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>说明</th>
+                    <th>积分</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in points_history %}
+                <tr>
+                    <td>{{ record.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ record.reason }}</td>
+                    <td class="{% if record.points > 0 %}positive{% endif %}">
+                        {% if record.points > 0 %}+{% endif %}{{ record.points }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <p>暂无积分记录</p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
