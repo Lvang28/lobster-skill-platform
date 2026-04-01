@@ -1,1 +1,1 @@
-web: python test_minimal.py
+web: gunicorn app:app --log-file -

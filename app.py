@@ -36,24 +36,28 @@ DEFAULT_AVATARS = [
 
 def get_or_create_auto_user():
     """自动创建或获取默认用户"""
-    if 'user_id' not in session:
-        # 生成随机用户名
-        username = f"{random.choice(DEFAULT_USERNAMES)}_{random.randint(1000, 9999)}"
-        avatar = random.choice(DEFAULT_AVATARS)
-        
-        # 创建用户
-        user_service, _, _ = get_services()
-        user = user_service.get_or_create_user(username, email=None)
-        user.avatar = avatar
-        user_service.session.commit()
-        
-        # 存入 session
-        session['user_id'] = user.id
-        session['username'] = user.username
-        session['avatar'] = avatar
+    from models import User  # 导入 User 模型
     
-    user_service, _, _ = get_services()
-    return user_service.session.query(User).get(session.get('user_id'))
+    try:
+        if 'user_id' not in session:
+            username = f"{random.choice(DEFAULT_USERNAMES)}_{random.randint(1000, 9999)}"
+            avatar = random.choice(DEFAULT_AVATARS)
+            
+            user_service, _, _ = get_services()
+            user = user_service.get_or_create_user(username, email=None)
+            user.avatar = avatar
+            user_service.session.commit()
+            
+            # 存入 session
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['avatar'] = avatar
+        
+        user_service, _, _ = get_services()
+        return user_service.session.query(User).get(session.get('user_id'))
+    except Exception as e:
+        print(f"❌ User creation failed: {e}")
+        raise
 
 
 @app.route('/')
