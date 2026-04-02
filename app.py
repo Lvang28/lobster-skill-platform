@@ -339,7 +339,11 @@ def download_skill(skill_id):
     if not file_path:
         return jsonify({'error': 'Skill not found'}), 404
     
-    return send_file(file_path, as_attachment=True)
+    # 构建完整的文件路径
+    from config_render import SKILLS_DIR
+    full_path = os.path.join(SKILLS_DIR, file_path)
+    
+    return send_file(full_path, as_attachment=True)
 
 
 @app.route('/skill/<int:skill_id>/use', methods=['POST'])
