@@ -33,6 +33,15 @@ def initialize_database():
         inspector = inspect(db.bind)
         tables = inspector.get_table_names()
         
+        print("\n📋 检查数据库表...")
+        if not tables:
+            print("   ⚠️  表未创建，等待应用首次访问时自动创建...")
+            # 表不存在，让正常流程去创建
+            _db_initialized = True
+            return
+        
+        print(f"   ✅ 找到表：{', '.join(tables)}")
+        
         # 检查 skills 表是否存在且为空
         if 'skills' in tables:
             with db.connect() as conn:
@@ -44,6 +53,8 @@ def initialize_database():
                     run_initial_data_insert(conn)
                     conn.commit()
                     print("✅ 数据库初始化完成\n")
+                else:
+                    print(f"ℹ️  数据库中已有 {count} 个技能，跳过初始化\n")
         
         _db_initialized = True
         
