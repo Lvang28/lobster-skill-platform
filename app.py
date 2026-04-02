@@ -65,6 +65,7 @@ def initialize_database():
 def run_initial_data_insert(session):
     """执行初始数据插入"""
     from datetime import datetime
+    from sqlalchemy import text
     
     skills_data = [
         ('Python Excel 自动化处理工具', '自动读取、修改、合并 Excel 文件，支持批量处理，大幅提升办公效率。', 'Python', '["Python", "Excel", "自动化", "办公"]'),
