@@ -194,7 +194,8 @@ class SkillService:
         return record
     
     def search_skills(self, query=None, category=None, tags=None, sort_by='created_at'):
-        skills_query = self.session.query(Skill).filter_by(is_active=True)
+        # 不过滤 is_active，显示所有技能（包括未设置的）
+        skills_query = self.session.query(Skill)
         
         if query:
             skills_query = skills_query.filter(
