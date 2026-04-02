@@ -147,7 +147,7 @@ class SkillService:
     
     def download_skill(self, skill_id, user_id):
         skill = self.session.query(Skill).get(skill_id)
-        if not skill or not skill.is_active:
+        if not skill:
             return None
         
         # 增加下载次数
