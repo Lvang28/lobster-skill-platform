@@ -62,7 +62,7 @@ def initialize_database():
         print(f"⚠️  数据库初始化跳过：{e}")
         _db_initialized = True  # 即使失败也标记为已尝试
 
-def run_initial_data_insert(conn):
+def run_initial_data_insert(session):
     """执行初始数据插入"""
     from datetime import datetime
     
@@ -130,7 +130,7 @@ def run_initial_data_insert(conn):
         filename = f"skill_{i:03d}_{name[:30].replace(' ', '_')}.txt"
         
         try:
-            conn.execute(insert_sql, {
+            session.execute(insert_sql, {
                 'name': name,
                 'description': description,
                 'category': category,
@@ -612,38 +612,42 @@ def admin_init_skills():
     
     try:
         db = get_db_session()
+        
+        # 检查表是否存在
         inspector = inspect(db.bind)
         tables = inspector.get_table_names()
         
         if 'skills' not in tables:
             return jsonify({'error': 'Skills table not found'}), 404
         
-        with db.connect() as conn:
-            result = conn.execute(text("SELECT COUNT(*) FROM skills"))
-            count = result.scalar()
-            
-            if count > 0:
-                return jsonify({
-                    'message': f'Database already has {count} skills',
-                    'action': 'skipped'
-                })
-            
-            # 执行插入
-            print("\n📦 Admin API: Inserting 50 skills...")
-            run_initial_data_insert(conn)
-            conn.commit()
-            
-            result = conn.execute(text("SELECT COUNT(*) FROM skills"))
-            new_count = result.scalar()
-            
+        # 检查是否已有数据
+        result = db.execute(text("SELECT COUNT(*) FROM skills"))
+        count = result.scalar()
+        
+        if count > 0:
             return jsonify({
-                'message': f'Successfully inserted {new_count} skills',
-                'action': 'inserted',
-                'count': new_count
+                'message': f'Database already has {count} skills',
+                'action': 'skipped'
             })
-            
+        
+        # 执行插入
+        print("\n📦 Admin API: Inserting 50 skills...")
+        run_initial_data_insert(db)
+        db.commit()
+        
+        # 验证结果
+        result = db.execute(text("SELECT COUNT(*) FROM skills"))
+        new_count = result.scalar()
+        
+        return jsonify({
+            'message': f'Successfully inserted {new_count} skills',
+            'action': 'inserted',
+            'count': new_count
+        })
+        
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
 if __name__ == '__main__':
