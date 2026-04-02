@@ -44,17 +44,16 @@ def initialize_database():
         
         # 检查 skills 表是否存在且为空
         if 'skills' in tables:
-            with db.connect() as conn:
-                result = conn.execute(text("SELECT COUNT(*) FROM skills"))
-                count = result.scalar()
-                
-                if count == 0:
-                    print("\n📦 检测到空数据库，开始初始化 50 个技能...")
-                    run_initial_data_insert(conn)
-                    conn.commit()
-                    print("✅ 数据库初始化完成\n")
-                else:
-                    print(f"ℹ️  数据库中已有 {count} 个技能，跳过初始化\n")
+            result = db.execute(text("SELECT COUNT(*) FROM skills"))
+            count = result.scalar()
+            
+            if count == 0:
+                print("\n📦 检测到空数据库，开始初始化 50 个技能...")
+                run_initial_data_insert(db)
+                db.commit()
+                print("✅ 数据库初始化完成\n")
+            else:
+                print(f"ℹ️  数据库中已有 {count} 个技能，跳过初始化\n")
         
         _db_initialized = True
         
