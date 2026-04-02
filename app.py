@@ -600,6 +600,52 @@ def get_stats():
     })
 
 
+@app.route('/admin/init-skills', methods=['GET'])
+def admin_init_skills():
+    """管理员初始化技能数据（临时路由）"""
+    from sqlalchemy import text, inspect
+    
+    # 简单权限检查（生产环境应该用更好的认证）
+    token = request.args.get('token', '')
+    if token != 'lobster_admin_2024_secret':
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        db = get_db_session()
+        inspector = inspect(db.bind)
+        tables = inspector.get_table_names()
+        
+        if 'skills' not in tables:
+            return jsonify({'error': 'Skills table not found'}), 404
+        
+        with db.connect() as conn:
+            result = conn.execute(text("SELECT COUNT(*) FROM skills"))
+            count = result.scalar()
+            
+            if count > 0:
+                return jsonify({
+                    'message': f'Database already has {count} skills',
+                    'action': 'skipped'
+                })
+            
+            # 执行插入
+            print("\n📦 Admin API: Inserting 50 skills...")
+            run_initial_data_insert(conn)
+            conn.commit()
+            
+            result = conn.execute(text("SELECT COUNT(*) FROM skills"))
+            new_count = result.scalar()
+            
+            return jsonify({
+                'message': f'Successfully inserted {new_count} skills',
+                'action': 'inserted',
+                'count': new_count
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     print(f"🦞 龙虾 Skill 合集平台启动中...")
     print(f"访问地址：http://{HOST}:{PORT}")
